@@ -308,11 +308,7 @@ end
 
 minimum_rho = 0.9;
 
-% random (10%) sample of files
-% rand_datasample = randsample(1:size(edf_files,1),round(0.1*size(edf_files,1)));
-
-
-    spikes_table_screen = spike_data_corr(templates,minimum_rho,minimum_p2p,maximum_p2p,edf_files,[path_EEG filesep subject filesep 'mat'],subject,srate);
+  spikes_table_screen = spike_data_corr(templates,minimum_rho,minimum_p2p,maximum_p2p,edf_files,[path_EEG filesep subject filesep 'mat'],subject,srate);
     % already removes spikes with overlap (second function)
 
 %% Select minimum number of spikes with the highest rho value
@@ -430,7 +426,7 @@ t.TileSpacing = 'compact'
 
 print('-dtiff','-r600',[path_IED filesep 'alltemplates'])
 
-%% Figure 3 - Spike rate over time (SUB002)
+%% Figure 4 - Spike rate over time (SUB002)
 
 subjects_IED = {'E02','E04','E06','E08','E09','SUB001','SUB002'; 'Europe/Copenhagen','Europe/Copenhagen','Europe/Copenhagen','Europe/Copenhagen','Europe/Copenhagen','Europe/London','Europe/London'}
 for subji = [1 3 4 5 7] % 1:length(subjects_IED)
@@ -609,110 +605,6 @@ set(gca,'XTickLabel',{'12am';'2am';'4am';'6am';'8am';'10am';'12pm'})
 
 
 
-saveas(gcf,[path_IED filesep subject filesep 'Figure 3.png'])
+saveas(gcf,[path_IED filesep subject filesep 'Figure 4.png'])
 
 end
-
-% time_recording = sum(adherence_mat)
-% time_recording = time_recording(1:end-2);
-% spikes_day = sum(spike_rate_mat,'omitnan')
-% spikes_day = spikes_day(1:end-2);
-% spike_rate_day = sum(spike_rate_mat(:,1:end-2),'omitnan') ./ (time_recording/60)
-% 
-%  x = [ones(length(time_recording),1) time_recording']
-% b = x \ spikes_day'
-% yCalc1 = x*b;
-% [corr_coef pval] = corr(time_recording',spikes_day')
-% 
-% figure, scatter(time_recording,spikes_day)
-% xlabel('daily recording time (min./day)')
-% ylabel('Num. spikes / day')
-% title('Correlation between recording time and spike rate')
-% hold on
-% plot(time_recording,yCalc1,'k-','DisplayName',['Rho = ' num2str(round(corr_coef,2)) ', p = ' num2str(round(pval,3))])
-% legend
-% set(gca,'YLim',[0 max(spikes_day)])
-% saveas(gcf,[path_IED filesep subject filesep get(get(gca,'Title'),'String') '.png'])
-% 
-% 
-% c = x \ spike_rate_day'
-% yCalc1 = x*c;
-% [corr_coef pval] = corr(time_recording',spike_rate_day')
-% 
-% figure, scatter(time_recording,spike_rate_day)
-% xlabel('daily recording time (min./day)')
-% ylabel('Average Spike Rate (Sp/h)')
-% title('Correlation between recording time and spike rate per day')
-% hold on
-% plot(time_recording,yCalc1,'k-','DisplayName',['Rho = ' num2str(round(corr_coef,2)) ', p = ' num2str(round(pval,3))])
-% legend
-% set(gca,'YLim',[0 max(spike_rate_day)])
-% saveas(gcf,[path_IED filesep subject filesep get(get(gca,'Title'),'String') '.png'])
-% 
-% figure, 
-% plot(spike_rate_day)
-% hold on, 
-% plot(days(EEG_seizures.onset - start_date),spike_rate_day(ceil(days(EEG_seizures.onset - start_date))),'*')
-% %% Define pre-ictal, post_ictal, interictal and ictal times.
-% 
-% pre_ictal_period = datenum(repmat((dateshift(EEG_seizures.onset,'start','minute','nearest') - hours(1)),1,60) + repmat(minutes(0:59),size(EEG_seizures,1),1));
-% pre_ictal_period = pre_ictal_period';
-% pre_ictal_period = pre_ictal_period(:);
-% pre_ictal_rate = spike_rate(dsearchn(whole_time,pre_ictal_period));
-% pre_ictal_rate = reshape(pre_ictal_rate,60,25);
-% 
-% pre_ictal_hour = sum(pre_ictal_rate);
-% pre_ictal_hour_median = median(pre_ictal_hour);
-% pre_ictal_hour_mean = mean(pre_ictal_hour);
-% pre_ictal_hour_std = std(pre_ictal_hour);
-% 
-% post_ictal_period = datenum(repmat((dateshift(EEG_seizures.offset,'start','minute','nearest')),1,60) + repmat(minutes(0:59),size(EEG_seizures,1),1));
-% post_ictal_period = post_ictal_period';
-% post_ictal_period = post_ictal_period(:);
-% post_ictal_rate = spike_rate(dsearchn(whole_time,post_ictal_period));
-% post_ictal_rate = reshape(post_ictal_rate,60,25);
-% 
-% post_ictal_hour = sum(post_ictal_rate);
-% post_ictal_hour_median = median(post_ictal_hour);
-% post_ictal_hour_mean = mean(post_ictal_hour);
-% post_ictal_hour_std = std(post_ictal_hour);
-% 
-% ictal_period = [];
-% for i=1:size(EEG_seizures,1)
-%     ictal_period = [ictal_period dateshift(EEG_seizures.onset(i),'start','minute','nearest') + minutes(0:ceil(EEG_seizures.duration(i) / 60))];
-% end
-% ictal_period = ictal_period';
-% ictal_period = datenum(ictal_period);
-% 
-% interictal_period = whole_time;
-% interictal_period(dsearchn(interictal_period,pre_ictal_period)) = nan;
-% interictal_period(dsearchn(interictal_period,post_ictal_period)) = nan;
-% interictal_period(dsearchn(interictal_period,ictal_period)) = nan;
-% 
-% interictal_rate = spike_rate(dsearchn(whole_time,interictal_period));
-% 
-% interictal_rate = reshape(interictal_rate,60,length(interictal_rate)/60);
-% 
-% interictal_hour = sum(interictal_rate); % ignore hours with NaNs
-% interictal_hours = sum(~isnan(interictal_hour));
-% interictal_hour_median = median(interictal_hour,'omitnan');
-% interictal_hour_mean = mean(interictal_hour,'omitnan');
-% interictal_hour_std = std(interictal_hour,'omitnan');
-% 
-% g= [ones(size(interictal_hour')) ; 2*ones(size(pre_ictal_hour')); 3*ones(size(post_ictal_hour'))]
-% figure,
-% boxplot([interictal_hour';pre_ictal_hour';post_ictal_hour'],g)
-% ylabel('Spike Rate (Sp./h)')
-% xticklabels({['Interictal (' num2str(interictal_hours) ' segments)'],['Pre-ictal (' num2str(sum(~isnan(pre_ictal_hour))) ' segments)'],['Post-ictal ('  num2str(sum(~isnan(post_ictal_hour))) ' segments)']})
-% title(t,'Comparison of spike rate between interictal, pre-ictal and post-ictal periods')
-%  saveas(gcf,[path_IED filesep subject filesep get(get(t,'Title'),'String') '.png'])
-%  
-% b
-% figure, 
-% t = tiledlayout(1,3)
-% ax(1)=nexttile, boxplot(interictal_hour); xticklabels({['interictal (' num2str(interictal_hours) ' hour segments)']})
-%  ax(2)=nexttile, boxplot(pre_ictal_hour); xticklabels({['pre_ictal (' num2str(sum(~isnan(pre_ictal_hour))) ' hour segments)']})
-%  ax(3)=nexttile, boxplot(post_ictal_hour); xticklabels({['post_ictal ('  num2str(sum(~isnan(post_ictal_hour))) ' hour segments)']})
-%  linkaxes(ax(:))
-% 
-% [p,h,stats] = ranksum(interictal_hour,pre_ictal_hour)
