@@ -9,10 +9,6 @@ for i = 1:size(randomepochs,1)
    ied_files(i,2) = max(find(any(isbetween(randomepochs.Var1(i):minutes(1):randomepochs.Var2(i),edf_files.start,edf_files.end),2)));
 end
 % 
-% randomepochs(sum(ied_file,2)==0,:)=[];
-% ied_file(sum(ied_file,2)==0,:)=[];
-% 
-% ied_file(ied_file(:,1) ~= 0 & ied_file(:,2) == 0,2)
 
 concat_data = NaN(2,round(3600*srate),size(ied_files,1));
 
