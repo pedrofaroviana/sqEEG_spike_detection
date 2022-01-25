@@ -1,5 +1,5 @@
 %% Read data headers and extract time start and end
-% Fieltrip Toolbox is required to open the edf files
+
 % Pedro F. Viana, King's College London
 % January 2021
 
