@@ -3,14 +3,15 @@
 % manual_spikes - spikes identified manually (in datetime format)
 % randomepochs - datetime of each random epoch
 function [rho_final correl_m_a pval] = ROC_analysis_sqEEG(subject,path_EEG,path_IED,edf_files,time_zone,srate,EEG_seizures)
-% just one epoch
+
+
 randomepochs = readtable([path_IED filesep subject filesep 'random_epochs.xls']);
-% randomepochs = randomepochs(1,:)
 randomepochs.Var1 = datetime (randomepochs.random_beg_epochs,'TimeZone',time_zone);
 randomepochs.Var2 = randomepochs.Var1 + hours(1);
 randomepochs = removevars(randomepochs,{'random_beg_epochs','random_end_epochs'});
 save('random_epochs.mat',"randomepochs")
-% load('random_epochs.mat')
+
+
 
 % manual spikes
 manual_spikes = readtable([path_IED filesep subject filesep subject '_sp_rev.txt']);
@@ -67,32 +68,6 @@ end
 
 spikes_table_val = cat(1,spikes_table_t{ti,:});
 
-% % matrify computation
-% data_corr = zeros(2,length(final_template),length(ied_data)-length(final_template)+1);
-% 
-% spikes_table_t_chan = {[] []};
-% rho = zeros(length(ied_data)-length(final_template)+1,2);
-% peak_2_peak = zeros(length(ied_data)-length(final_template)+1,2);
-% for chi = 1:2
-%     squeeze_data = ied_data(chi,:);
-% data_corr(chi,:,:) = (squeeze_data((bsxfun(@plus,(1:length(final_template)).',0:1:numel(squeeze_data)-length(final_template)))'))';
-% rho(:,chi) = corr(squeeze(data_corr(chi,:,:)),(final_template(chi,:))');
-% peak_2_peak(:,chi) = squeeze(max(data_corr(chi,:,:)) - min(data_corr(chi,:,:)));
-% high_corr_idx = find(rho(:,chi)>minimum_rho);
-% spikes_table_t_chan{chi} = table((randomepochs.Var1(si) + seconds((high_corr_idx./srate))) , rho(rho(:,chi)>minimum_rho,chi), (zeros(length(high_corr_idx),1) + chi),peak_2_peak(rho(:,chi)>minimum_rho,chi));
-% end
-% 
-% spikes_table_temp = [spikes_table_t_chan{1};spikes_table_t_chan{2}];
-% spikes_table_temp.Properties.VariableNames = {'dt','rho','chan','p2p'};
-% spikes_table_temp = remove_overlap(spikes_table_temp,final_template,srate);
-% 
-% spikes_table_val(end+1:end+size(spikes_table_temp,1),:) = spikes_table_temp;
-% 
-% clear rho* data_corr spikes_table_temp
-% toc
-% end
-
-% save([path_IED filesep subject filesep 'spikes_table_val.mat'],'spikes_table_val')
 
 %% Overall ROC curve
 disp('Sensitivity/Specificity analysis...')
@@ -110,12 +85,7 @@ end
 % remove time periods without data
 time_2_discard = ictal_time_2_discard + ((sum(sum(sum(isnan(concat_data)))) / 2) / srate);
 
-% Define peak to peak of template
-% peak_2_peak = squeeze(max(ied_seg_2{ti},[],2) - min(ied_seg_2{ti},[],2));
-% peak_2_peak = peak_2_peak(:);
-
 % Define threshold values for p2p and rho minimum values
-% threshold = [0 (0.95*prctile(peak_2_peak,0)) prctile(peak_2_peak,0:5)];
 rho = 0.5:0.01:1;
 
 % Define positives and negatives
@@ -127,11 +97,6 @@ matched_spikes = cell(1,length(rho));
 num_autom_spikes_total = zeros(1,length(rho));
 tpositives_total = zeros(1,length(rho));
 fpositives_total = zeros(1,length(rho));
-
-% matched_spikes = cell(length(threshold),length(rho));
-% num_autom_spikes_total = zeros(length(threshold),length(rho));
-% tpositives_total = zeros(length(threshold),length(rho));
-% fpositives_total = zeros(length(threshold),length(rho));
 
 
 % for thri = 1:length(threshold)
@@ -191,7 +156,6 @@ set(gca,'XLim',[0 1]), set(gca,'YLim',[0 1])
 axis square
 title(['ROC curves - ratio of positive spikes to total detected spikes'])
 xlabel('Ratio of false positive spikes'), ylabel('True Positive Rate')
-% saveas(gcf,[path_IED filesep subject filesep get(get(gca,'Title'),'string') '.png'])
 
 % "Real" false positive rate
 nexttile
@@ -200,13 +164,12 @@ for i = 1:size(fpositiverate_total,1)
     plot(fpositiverate_total(i,:),tpositiverate_total(i,:),'Color',plot_cmap(i,:),'LineWidth',2)
     hold on
 end
-% legend([string(threshold),"random"])
+
 hold on, plot([0 1],[0 1],'k--')
 set(gca,'XLim',[0 1]), set(gca,'YLim',[0 1])
 axis square
 title(['ROC curves - real false positive rate'])
 xlabel('False Positive Rate'), ylabel('True Positive Rate')
-% saveas(gcf,[path_IED filesep subject filesep get(get(gca,'Title'),'string') '.png'])
 
 % False alarms/hour
 nexttile
@@ -215,14 +178,12 @@ for i = 1:size(fpositiverate_hour_total,1)
     plot(fpositiverate_hour_total(i,:),tpositiverate_total(i,:),'Color',plot_cmap(i,:),'LineWidth',2)
     hold on
 end
-% legend([string(threshold),"random"])
 hold on, plot([0 3600/0.15],[0 1],'k--')
 set(gca,'XLim',[0 3600/0.15]), set(gca,'YLim',[0 1])
 axis square
 title(['ROC curves - FAR per hour'])
 xlabel('False positive spikes / hour'), ylabel('True Positive Rate')
 
-% saveas(gcf,[path_IED filesep subject filesep get(get(gca,'Title'),'string') '.png'])
 saveas(gcf,[path_IED filesep subject filesep subject '_ROC_curves.png'])
 
 % Youden Index
@@ -255,8 +216,6 @@ end
 [mval, max_idx] = max(youden_max);
 
 
-% p2pfinal = max_values.p2p_threshold(max_idx);
-
 %% Plot selected spikes
 disp('Plotting data segments...')
 for ri = 1:size(randomepochs,1)
@@ -278,10 +237,10 @@ for chi = 1:2
     ax(chi) = nexttile;
     plot(time,squeeze(concat_data(chi,:,ri)))
     hold on
-%     plot(datenum(chan_sp{chi}),concat_data(chi,dsearchn(time',datenum(chan_sp{chi})),ri),'r*','MarkerSize',10)
+
     plot(datenum(chan_sp{chi}),zeros(1,length(chan_sp{chi})),'r*','MarkerSize',10)
     set(gca,'YLim',[-100 100])
-%     plot(datenum(manual_spikes_t),concat_data(chi,dsearchn(time',datenum(manual_spikes_t)),ri),'gd','MarkerSize',10)
+
     plot(datenum(manual_spikes_t),zeros(1,length(manual_spikes_t)),'gd','MarkerSize',10)
     datetick('x','HH:MM')
 end
@@ -382,14 +341,10 @@ manual_spike_rate(end:length(val_time)) = 0;
 plot(autom_spike_rate,'Color',[0 118 192]./256), hold on, plot(manual_spike_rate,'Color',[206 128 128]./256)
 ylabel('Spike rate (Sp / min.)'), xlabel('Time (min.)')
 legend({'Autom. detection','Visual identification'})
-% text(size(randomepochs,1)*60,1,['Rho = ' num2str(correl_m_a) ', p = ' num2str(pval) '   '],'HorizontalAlignment','right','FontSize',12)
-% set(gca,'XLim',[0 780])
+
 title('Correlation between manual and automated detection')
 saveas(gcf,[path_IED filesep 'Figure 3.png'])
 print('-dtiff','-r600',[path_IED filesep 'correl_manual_autom'])
-
-
-
 
 %% Correlation between automated spike rate and manual spike rate
 disp('Correlation between automatic and manual spike rate...')
@@ -425,74 +380,3 @@ max_values = table(youden_max,rho(youden_max_idx)',fpositive_youden,fpositive_h_
 writetable(max_values,[path_IED filesep subject filesep subject '_val_stats.xlsx'])
 
 end
-
-% %% ROC curve for each segment
-% 
-% for i = 1:size(randomepochs,1)
-%     figure, plot(fpositiverate(i,:),tpositiverate(i,:))
-%     xlabel('False Positive Rate'), ylabel('True Positive Rate')
-%     hold on, plot([0 1],[0 1],'k-')
-%     set(gca,'XLim',[0 1]), set(gca,'YLim',[0 1])
-%     title(['Segment ' num2str(i) ', ' char(randomepochs.Var1(i)) ' - ' num2str(num_manual_spikes(i)) ' manual spikes'])
-%     saveas(gcf,[path_IED filesep subject filesep get(get(gca,'Title'),'string') '.png'])
-% end
-% 
-% %% NOTES --------------------------
-% %% Run final template on manually reviewed data
-% 
-% T = readtable([path_EEG_review filesep subject filesep subject '_annotations.xlsx']);
-% manual_spikes = T.Var2(contains(T.Var4,'sp rev'));
-% manual_spikes = datetime(manual_spikes,'TimeZone','Europe/Lisbon');
-% clear T
-% 
-% randomepochs = readtable([path_EEG_review filesep subject filesep 'random_dates_27082020.txt']);
-% randomepochs = randomepochs(1:2:end,:);
-% randomepochs.Var2 = randomepochs.Var1 + hours(1);
-% randomepochs.Var1 = datetime(randomepochs.Var1,'TimeZone','Europe/Lisbon');
-% randomepochs.Var2 = datetime(randomepochs.Var2,'TimeZone','Europe/Lisbon');
-% 
-% concat_data = concatenate_segments(randomepochs,edf_files,srate);
-% 
-% save([path_IED filesep subject filesep 'concat_data.mat'],'concat_data','randomepochs')
-% 
-% %% Comparison with manual selection
-% 
-% % put spikes from both channels together
-% automated_spikes = table([spikes_tabnew{1}.Var1 ; spikes_tabnew{2}.Var1],[spikes_tabnew{1}.Var2 ; spikes_tabnew{2}.Var2],[ones(size(spikes_tabnew{1},1),1); ones(size(spikes_tabnew{2},1),1)+1]);
-% 
-% automated_spikes = sortrows(automated_spikes,2);
-% 
-% % remove spike detections separated by < 5 samples
-% 
-% automated_spikes = addvars(automated_spikes,[10; seconds(diff(automated_spikes.Var1))]);
-% automated_spikes = addvars(automated_spikes,automated_spikes.Var4<0.3); % 300 miliseconds
-% transitions = diff(automated_spikes.Var5);
-% if transitions(end) == 1, transitions(end) = 0; else, end
-% indexes = [(find([0;transitions == 1]) - 1) (find([0;transitions == -1])-1)];
-% spikes_tabnew = automated_spikes;
-% 
-% spikes_indexes = {};
-% for i =  1:size(indexes,1)
-% spikes_indexes{i} = indexes(i,1):indexes(i,2);
-% end
-% 
-% spikes_tabnew(cell2mat(spikes_indexes),:) = [];
-% 
-% for i =  1:size(indexes,1)
-%     [max_rho(i,1) max_rho(i,2)] = max(automated_spikes.Var2(spikes_indexes{i}));
-%     spikes_tabnew = [spikes_tabnew;automated_spikes(spikes_indexes{i}(max_rho(i,2)),:)];
-% end
-% spikes_tabnew = sortrows(spikes_tabnew,1);
-% 
-% %% Read manual identified spikes
-% 
-% % Manual spike identification
-% spikes_tab_manual = readtable('sp_rev_15092020.txt');
-% spikes_tab_manual.Var2 = datetime(spikes_tab_manual.Var2,'TimeZone','Europe/Lisbon')
-% 
-% % Random epoch identification
-% randomepochs = readtable('random_dates_27082020.txt')
-% randomepochs = randomepochs(1:2:end,:);
-% randomepochs.Var2 = randomepochs.Var1 + hours(1);
-% randomepochs.Var1 = datetime(randomepochs.Var1,'TimeZone','Europe/Lisbon')
-% randomepochs.Var2 = datetime(randomepochs.Var2,'TimeZone','Europe/Lisbon')
