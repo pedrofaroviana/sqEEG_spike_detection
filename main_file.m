@@ -1,12 +1,10 @@
-% Spike Detection of sqEEG
-% Pedro Viana, 3/Sep/2020
-clear all, close all
-% Matlab settings
-set(0,'DefaultFigureWindowStyle','docked') 
-%% Patient parameters
+% Template Matching Spike Detection with ULT sqEEG
+% Pedro Faro Viana, 20/Jan/2022
+
 % subject to analyse (prefix of subject to analyse)
 
 subjects_IED = {'E02','E04','E06','E08','E09','SUB001','SUB002'; 'Europe/Copenhagen','Europe/Copenhagen','Europe/Copenhagen','Europe/Copenhagen','Europe/Copenhagen','Europe/London','Europe/London'}
+
 for subji = 1:length(subjects_IED)
     close all
 subject = subjects_IED{1,subji}
@@ -22,8 +20,7 @@ path_EEG_review = 'G:\Other computers\My MacBook Pro\Documents\Neurologia\2019\S
 
 % path to EEG data
 path_EEG = 'C:\Users\Widex\Documents\SUBER\Data';
-% path_EEG = '/Users/pedrofaroviana/OneDrive - King''s College London/Documents/EpiSight/EDFtestFiles/E04/EDF_E04/E04 with Implant ID'
-% path_EEG = '/Users/pedrofaroviana/OneDrive - King''s College London/Documents/EpiSight/EDFtestFiles/E06'
+
 % path to ied detection analysis
 path_IED = 'G:\Other computers\My MacBook Pro\Documents\Neurologia\2019\SUBER\Analysis\Spike_detection';
 
@@ -32,7 +29,7 @@ channel_label = {'D-C','P-C'};
 
 %% Import adherence and seizure data
 % 
-% % turn edf to mat files, if not done already
+% % convert .edf files to .mat files, if not done already
 % cd([path_EEG filesep subject])
 % edf_2_mat
 
