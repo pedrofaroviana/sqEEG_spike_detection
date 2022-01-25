@@ -130,30 +130,7 @@ for iti=1:2 % two iterations, one for alignment and the other to retrieve spikes
 
                 plot(ied_seg{ti,chi}(i,:))
 
-                %             % manually align spikes with FieldTrip databrowser
-                %                 % 1) select with mouse starting at the peak - pink shading
-                %                 % should appear
-                %                 % 2) press "Q" (quit)
-                %                 % 3) press any key in command window
-                %             data2            = data;
-                %             data2.trial      = {eeg(:,idx-round(peri_spike_time(1)*srate):idx+round(peri_spike_time(end)*srate))};
-                %             data2.time       = {(0:size(ied_seg_time{ti,chi},2)-1)./srate};
-                %             data2.sampleinfo = [1 length(ied_seg_time{ti,chi}(i,:))];
-                %             cfgv             = [];
-                %             cfgv.viewmode    = 'vertical';
-                %             cfgv.ylim        = [-50 50];
-                %             cfgv.blocksize   = 2;
-                %             cfgvv            = ft_databrowser(cfgv,data2);
-                %             pause
-                %
-                %             ied_ref = ied_seg_time{ti,chi}(i,cfgvv.artfctdef.visual.artifact(1));
-                %             [a idx] = min(abs(ied_ref - time));
-                %
-                %             % extract spike segment +- peri-spike time, now aligned to
-                %             % spike
-                %             ied_seg{ti,chi}(i,:) = eeg(chi,idx-round(peri_spike_time(1)*srate):idx+round(peri_spike_time(end)*srate));
-                %             ied_seg_time{ti,chi}(i,:) = time(idx-round(peri_spike_time(1)*srate):idx+round(peri_spike_time(end)*srate));
-                %
+
                 if iti==1
                     [pks,locs,~,p] = findpeaks(ied_seg{ti,chi}(i,round(sz_segment/2)-max_lag:round(sz_segment/2)+max_lag));
                     if isempty(pks)
@@ -288,20 +265,6 @@ end
 
 save([path_IED filesep subject filesep 'first_templates.mat'],'templates','ied_seg*','srate','spike_o*','maximum_p2p','minimum_p2p')
 
-%% Find correlation coefficient between these spikes using leave-one-spike out
-
-for ti = 1:size(ied_seg,1)
-    for chi=1:2
-        for i=1:size(ied_seg{ti,chi},1)
-            temp_ied_seg = ied_seg_short_z{ti,chi};
-            one_spike = temp_ied_seg(i,:);
-            temp_ied_seg(i,:) = [];
-            temp_template = mean(temp_ied_seg);
-            rho{ti,chi}(i) = corr(temp_template',one_spike');
-        end
-        mean_rho(ti,chi) = mean(rho{ti,chi});
-    end
-end
 
 %% Run the first template on data
 % run the first template on the whole or part of dataset
@@ -313,8 +276,8 @@ minimum_rho = 0.9;
 
 %% Select minimum number of spikes with the highest rho value
 
-% select minimum of 100 spikes, with highest rho value possible (up to
-% 0.95)
+% select minimum of 200 spikes, with highest rho value possible
+
 rhos = 0.9:0.01:0.98;
 n_spikes=[];
 for ri = 1:length(rhos)
