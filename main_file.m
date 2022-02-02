@@ -1,6 +1,7 @@
 % Template Matching Spike Detection with ULT sqEEG
 % Pedro Faro Viana, 20/Jan/2022
 % IoPPN, King's College London
+% pedro.viana@kcl.ac.uk
 
 % subjects to analyse (subject IDs and their timezones)
 
