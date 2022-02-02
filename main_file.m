@@ -1,10 +1,13 @@
 % Template Matching Spike Detection with ULT sqEEG
 % Pedro Faro Viana, 20/Jan/2022
+% IoPPN, King's College London
 
-% subject to analyse (prefix of subject to analyse)
+% subjects to analyse (subject IDs and their timezones)
 
-subjects_IED = {'E02','E04','E06','E08','E09','SUB001','SUB002'; 'Europe/Copenhagen','Europe/Copenhagen','Europe/Copenhagen','Europe/Copenhagen','Europe/Copenhagen','Europe/London','Europe/London'}
+subjects_IED = {'E02','E04','E06','E08','E09','SUB001','SUB002'; ...
+                'Europe/Copenhagen','Europe/Copenhagen','Europe/Copenhagen','Europe/Copenhagen','Europe/Copenhagen','Europe/London','Europe/London'}
 
+% looping analysis over subjects
 for subji = 1:length(subjects_IED)
     close all
 subject = subjects_IED{1,subji}
@@ -12,30 +15,27 @@ subject = subjects_IED{1,subji}
 % timezone
 time_zone = subjects_IED{2,subji}
 
-% path to diary data
-path_diary = 'G:\Other computers\My MacBook Pro\Documents\Neurologia\2019\SUBER\Analysis\Diary_Data';
+% path to EEG annotations file - folder containing .txt files with seizure annotations, extracted from Episight reader
+path_EEG_review = '';
 
-% path to EEG review data
-path_EEG_review = 'G:\Other computers\My MacBook Pro\Documents\Neurologia\2019\SUBER\Analysis\EEG_Review';
+% path to EEG data - containing subfolders with each patient data (folder names matching the subject IDs)
+path_EEG = '';
 
-% path to EEG data
-path_EEG = 'C:\Users\Widex\Documents\SUBER\Data';
-
-% path to ied detection analysis
-path_IED = 'G:\Other computers\My MacBook Pro\Documents\Neurologia\2019\SUBER\Analysis\Spike_detection';
+% path to ied detection analysis folder
+path_IED = '';
 
 % channel labels
 channel_label = {'D-C','P-C'};
 
 %% Import adherence and seizure data
 % 
-% % convert .edf files to .mat files, if not done already
+% % write a copy of EEG data .edf files to .mat files (in a subfolder) to speed up analysis
 % cd([path_EEG filesep subject])
 % edf_2_mat
 
 %%
 
-% read headers, onset and offset times of files - adherence_table function
+% extract headers, onset and offset times of each EEG file into a table - adherence_table function
 edf_files = adherence_table([path_EEG filesep subject filesep 'mat'],time_zone);
 
 % define start date
@@ -44,22 +44,19 @@ start_date = dateshift(edf_files.start(1),'start','day');
 % define end date
 end_date = dateshift(edf_files.end(end),'end','day');
 
-% import times of sqEEG seizure occurrence
+% import timestamps of sqEEG seizures into a table - import_EEG_seizures_v2 function, reads specific annotation labels
 EEG_seizures = import_EEG_seizures_v2(subject,path_EEG_review,time_zone,{'sz_50' 'sz_75'});
-
-% Import seizure diary data
-% diary_table = import_diary_events(subject,path_diary,start_date,end_date);
 
 %% Import and align hand-selected spikes, aligned for each channel
 
-% a set of 20-40 spikes marked manually on EpiSight - care to mark the
+% read .txt file with a set of 10-60 spikes marked manually on EpiSight - careful to mark close to the
 % sharpest negative or positive peak of the discharge
 T = readtable([path_IED filesep subject filesep subject '_sp_rev.txt']);
 ied_dt = {};
 
-% spikes are labelled "sp_,_", first number for template number, second
+% spikes are labelled "sp_,_", first number for template number (if more than one template), second
 % number for channel where spike is seen ("sp_" only if spike is seen on
-% both channels)
+% both channels).
 
 ti = 1;
 while any(contains(T.Var4,['sp' num2str(ti)]))
@@ -74,16 +71,16 @@ ied_dt{ti,2}=sort(ied_dt{ti,2});
 % 
 ti = ti+1;
 end
+
 %% Align spikes
 
-% extract hdr
-hdr = ft_read_header('C:\Users\Widex\Documents\SUBER\Data\SUB001\SUB001_000001_0003535_20190723_02_EEGdata.edf');
+% extract hdr of a random EEG file to obtain the sampling rate
+hdr = ft_read_header('.edf');
 srate = hdr.Fs;
-
 
 % define peri-spike time (set to 1 second before and after the peak)
 peri_spike_time = [1 1]; % in seconds
-sz_segment = sum(round(peri_spike_time*srate))+1;
+n_samples = sum(round(peri_spike_time*srate))+1;
 max_lag = 20; % 20 samples before and after peak allowed
 
 max_prom = {}; loc_max_prom = {}; max_neg_prom = {}; loc_max_neg_prom = {}; pk_lag = {};
@@ -132,7 +129,7 @@ for iti=1:2 % two iterations, one for alignment and the other to retrieve spikes
 
 
                 if iti==1
-                    [pks,locs,~,p] = findpeaks(ied_seg{ti,chi}(i,round(sz_segment/2)-max_lag:round(sz_segment/2)+max_lag));
+                    [pks,locs,~,p] = findpeaks(ied_seg{ti,chi}(i,round(n_samples/2)-max_lag:round(n_samples/2)+max_lag));
                     if isempty(pks)
                         max_prom{ti,chi}(i) = 0; ind_pk = 0; loc_max_prom{ti,chi}(i) = 0;
                     else
@@ -140,7 +137,7 @@ for iti=1:2 % two iterations, one for alignment and the other to retrieve spikes
                         loc_max_prom{ti,chi}(i) = locs(ind_pk);
                     end
 
-                    [pks_neg,locs_neg,~,p] = findpeaks(-ied_seg{ti,chi}(i,round(sz_segment/2)-max_lag:round(sz_segment/2)+max_lag));
+                    [pks_neg,locs_neg,~,p] = findpeaks(-ied_seg{ti,chi}(i,round(n_samples/2)-max_lag:round(n_samples/2)+max_lag));
                     if isempty(pks_neg)
                         max_neg_prom{ti,chi}(i) = 0; ind_neg_pk = 0; loc_max_neg_prom{ti,chi}(i) = 0;
                     else
@@ -157,9 +154,9 @@ for iti=1:2 % two iterations, one for alignment and the other to retrieve spikes
                 [~,b] = max([max_prom{ti,chi} ; max_neg_prom{ti,chi}]);
              
                 if median(b) == 1
-                    pk_lag{ti,chi} = floor(sz_segment/2)-max_lag+loc_max_prom{ti,chi};
+                    pk_lag{ti,chi} = floor(n_samples/2)-max_lag+loc_max_prom{ti,chi};
                 else
-                    pk_lag{ti,chi} = floor(sz_segment/2)-max_lag+loc_max_neg_prom{ti,chi};
+                    pk_lag{ti,chi} = floor(n_samples/2)-max_lag+loc_max_neg_prom{ti,chi};
                 end
 
                 for spi=1:size(ied_dt{ti,chi},1)
@@ -175,7 +172,6 @@ saveas(gcf,[path_IED filesep subject filesep 'spike_alignment.png'])
 
 %% Plot spikes and averages
 
-% peri_spike_time = [1 1]; % in seconds
 time2plot = (-peri_spike_time(1):1/srate:peri_spike_time(2));  
 
 for ti = 1:size(ied_seg,1)
@@ -186,7 +182,6 @@ for ti = 1:size(ied_seg,1)
             nexttile
             title(num2str(i))
             data2plot = ied_seg{ti,chi}(i,:);
-%             time2plot = (0:size(ied_seg_time{ti,chi},2)-1)./srate;
             plot(time2plot,data2plot)
             datetick('x','HH:MM:ss')
             xticklabels({})
@@ -216,7 +211,7 @@ end
 
 %% Select short ied segment based on visual analysis and extract first template(s)
 
-% define onset and offset of spike by looking at the plot
+% define onset and offset of spike by looking at the plot, or selecting the same for all spikes
 for ti=1:size(ied_seg,1)
 %     prompt = ['Input spike_onset (in sec.) from template ' num2str(ti) ':'];
 %     spike_onset(ti) = input(prompt);
@@ -269,27 +264,25 @@ save([path_IED filesep subject filesep 'first_templates.mat'],'templates','ied_s
 %% Run the first template on data
 % run the first template on the whole or part of dataset
 
-minimum_rho = 0.9;
+minimum_r = 0.9;
 
-  spikes_table_screen = spike_data_corr(templates,minimum_rho,minimum_p2p,maximum_p2p,edf_files,[path_EEG filesep subject filesep 'mat'],subject,srate);
+  spikes_table_screen = spike_data_corr(templates,minimum_r,minimum_p2p,maximum_p2p,edf_files,[path_EEG filesep subject filesep 'mat'],subject,srate);
     % already removes spikes with overlap (second function)
 
-%% Select minimum number of spikes with the highest rho value
+%% Select minimum number 200 spikes, with highest r value possible
 
-% select minimum of 200 spikes, with highest rho value possible
-
-rhos = 0.9:0.01:0.98;
+rs = 0.9:0.01:0.98;
 n_spikes=[];
-for ri = 1:length(rhos)
-    n_spikes(ri) = sum(spikes_table_screen{ti}.rho > rhos(ri))  
+for ri = 1:length(rs)
+    n_spikes(ri) = sum(spikes_table_screen{ti}.r > rs(ri))  
 end
 if any(n_spikes>200)
-rhos = rhos(n_spikes>200);
+rs = rs(n_spikes>200);
 else
-    rhos = rhos(1);
+    rs = rs(1);
 end
-min_rho = rhos(end);
-spikes_table_screen{ti} = spikes_table_screen{ti}(spikes_table_screen{ti}.rho > min_rho,:);
+min_r = rs(end);
+spikes_table_screen{ti} = spikes_table_screen{ti}(spikes_table_screen{ti}.r > min_r,:);
 
 %% extract final template
 
@@ -304,12 +297,12 @@ upper_thresh = maximum_p2p;
 lower_thresh = minimum_p2p;
 upper_thresh = Inf; 
 lower_thresh = 0;
-% min_rho = 0.95;
+% min_r = 0.95;
 
 % plot
 figure
-x1 = dateshift(spikes_table_screen{ti}.dt(spikes_table_screen{ti}.rho > min_rho & spikes_table_screen{ti}.p2p<upper_thresh & spikes_table_screen{ti}.p2p>lower_thresh),'start','day');
-y1 = timeofday(spikes_table_screen{ti}.dt(spikes_table_screen{ti}.rho > min_rho & spikes_table_screen{ti}.p2p<upper_thresh & spikes_table_screen{ti}.p2p>lower_thresh));
+x1 = dateshift(spikes_table_screen{ti}.dt(spikes_table_screen{ti}.r > min_r & spikes_table_screen{ti}.p2p<upper_thresh & spikes_table_screen{ti}.p2p>lower_thresh),'start','day');
+y1 = timeofday(spikes_table_screen{ti}.dt(spikes_table_screen{ti}.r > min_r & spikes_table_screen{ti}.p2p<upper_thresh & spikes_table_screen{ti}.p2p>lower_thresh));
 plot(x1,y1,'b.')
 hold on
 % plot(x1,y1+1,'b.')
@@ -338,16 +331,17 @@ end
 
 save([path_IED filesep subject filesep 'final_template.mat'],'final_template','ied_seg_2', 'minimum_p2p', 'maximum_p2p','ied_seg_time_2','spikes_table_screen')
 
-%% Validation of the final template
+%% Validation of the final template - selecting the optimal threshold
 % load([path_IED filesep subject filesep 'random_epochs.mat'])
 % concat_data = concatenate_segments([path_EEG filesep 'mat'],randomepochs,edf_files,srate);
 
-[rho_final correl_m_a pval] = ROC_analysis_sqEEG(subject,path_EEG,path_IED,edf_files,time_zone,srate,EEG_seizures)
+[r_final correl_m_a pval] = ROC_analysis_sqEEG(subject,path_EEG,path_IED,edf_files,time_zone,srate,EEG_seizures)
+
 %% FINAL SPIKES 
 
-spikes_table_final = spike_data_corr_full(templates,rho_final,minimum_p2p,maximum_p2p,edf_files,[path_EEG filesep subject filesep 'mat'],subject,srate);
+spikes_table_final = spike_data_corr_full(templates,r_final,minimum_p2p,maximum_p2p,edf_files,[path_EEG filesep subject filesep 'mat'],subject,srate);
 
-save([path_IED filesep subject filesep 'spike_data.mat'],'final_template','spikes_table_final','rho_final', 'minimum_p2p', 'maximum_p2p')
+save([path_IED filesep subject filesep 'spike_data.mat'],'final_template','spikes_table_final','r_final', 'minimum_p2p', 'maximum_p2p')
 end
 
 %% Figure 2 - All templates
@@ -448,10 +442,10 @@ spikes_idx = dsearchn( datenum(whole_time),datenum(spikes_final_min));
 spike_rate = [(accumarray(spikes_idx,1)) ; zeros(length(whole_time)-(spikes_idx(end)),1)]; 
 
 figure, plot(whole_time,spike_rate,'k-')
-title(['|r_x_y| > ' num2str(rho_final) ' - mean spikes/min: ' num2str(round(mean(spike_rate,'omitnan'),2))])
+title(['|r_x_y| > ' num2str(r_final) ' - mean spikes/min: ' num2str(round(mean(spike_rate,'omitnan'),2))])
 ylabel('Spikes / min')
 datetick('x','dd/mm')
-savefig(gcf,['Spike rate_min - final rho' num2str(round(mean(spike_rate),2)) '.fig'])
+savefig(gcf,['Spike rate_min - final r' num2str(round(mean(spike_rate),2)) '.fig'])
 
 spike_rate_mat = reshape(spike_rate,1440,[]);
 whole_time_mat = reshape(whole_time,1440,[]);
